@@ -1,0 +1,58 @@
+name: Release
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    outputs:
+      new_tag: ${{ steps.tag.outputs.new_tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Solana
+        uses: metadaoproject/setup-solana@v1
+        with:
+          solana-cli-version: 1.18.0
+
+      - name: Install Anchor
+        run: |
+          cargo install --git https://github.com/coral-xyz/anchor --tag v0.30.1 anchor-cli --locked
+
+      - name: Build program
+        run: anchor build
+
+      - name: Calculate next version
+        id: version
+        uses: anothrNick/github-tag-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          release_branches: main
+          dry_run: true
+
+      - name: Create tag
+        id: tag
+        if: ${{ steps.version.outputs.new_tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a ${{ steps.version.outputs.new_tag }} -m "Release ${{ steps.version.outputs.new_tag }}"
+          git push origin ${{ steps.version.outputs.new_tag }}
+          echo "new_tag=${{ steps.version.outputs.new_tag }}" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        if: ${{ steps.tag.outputs.new_tag }}
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.tag.outputs.new_tag }}
+          name: "Release ${{ steps.tag.outputs.new_tag }}"
+          body: "Auto-generated release notes from commits since last tag."
+          files: |
+            target/deploy/attestations.so
+            target/idl/attestations.json
+          generate_release_notes: true
+          make_latest: true
