@@ -34,3 +34,17 @@ jobs:
 
       - name: Run tests
         run: anchor test
+
+      - name: Verify IDL generated
+        run: |
+          if [ ! -f target/idl/attestations.json ]; then
+            echo "IDL not generated"
+            exit 1
+          fi
+
+      - name: Verify program binary
+        run: |
+          if [ ! -f target/deploy/attestations.so ]; then
+            echo "Program binary not generated"
+            exit 1
+          fi
