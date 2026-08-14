@@ -1,0 +1,24 @@
+{
+  "name": "openchainbench-attestations-solana",
+  "version": "0.1.0",
+  "description": "On-chain performance attestations for OpenChainBench (Solana/Anchor)",
+  "scripts": {
+    "build": "anchor build",
+    "test": "anchor test",
+    "deploy": "anchor deploy",
+    "publish-attestation": "ts-node scripts/publish-attestation.ts"
+  },
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.30.1",
+    "@solana/web3.js": "^1.95.0",
+    "commander": "^12.1.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "mocha": "^10.0.0",
+    "ts-mocha": "^10.0.0"
+  },
+  "license": "MIT"
+}

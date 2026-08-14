@@ -1,0 +1,21 @@
+# Anchor builds
+target/
+artifacts/
+
+# Dependencies
+node_modules/
+
+# Environment
+.env
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test validator
+.test-ledger/
