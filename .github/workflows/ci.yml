@@ -7,23 +7,49 @@ on:
     branches: [main]
 
 jobs:
-  lint:
+  build-and-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check Anchor.toml exists
-        run: |
-          if [ ! -f Anchor.toml ]; then
-            echo "Anchor.toml not found"
-            exit 1
-          fi
-          echo "✓ Anchor.toml exists"
+      - name: Install Rust
+        uses: dtolabs/rust-action@1.79.0
 
-      - name: Check program source exists
+      - name: Install Solana
+        uses: metadaoproject/setup-solana@v1
+        with:
+          solana-cli-version: 1.18.0
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Yarn
+        run: npm install -g yarn
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Build program
         run: |
-          if [ ! -f programs/attestations/src/lib.rs ]; then
-            echo "Program source not found"
+          cd programs/attestations
+          cargo build-bpf
+
+      - name: Build IDL
+        run: anchor idl build
+
+      - name: Run tests
+        run: anchor test --skip-build
+
+      - name: Verify artifacts
+        run: |
+          if [ ! -f target/idl/attestations.json ]; then
+            echo "IDL not generated"
             exit 1
           fi
-          echo "✓ Program source exists"
+          if [ ! -f target/deploy/attestations.so ]; then
+            echo "Program binary not generated"
+            exit 1
+          fi
+          echo "All artifacts generated successfully"
