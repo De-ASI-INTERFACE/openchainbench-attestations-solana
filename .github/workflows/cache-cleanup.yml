@@ -1,0 +1,52 @@
+name: Cache Cleanup
+
+on:
+  schedule:
+    - cron: "17 3 * * 0"
+  pull_request:
+    types: [closed]
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete stale Actions caches
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const now = Date.now();
+            const maxAgeMs = 14 * 24 * 60 * 60 * 1000;
+            const prRef = context.eventName === "pull_request"
+              ? `refs/pull/${context.payload.pull_request.number}/merge`
+              : null;
+
+            const caches = await github.paginate(
+              github.rest.actions.getActionsCacheList,
+              { owner, repo, per_page: 100 }
+            );
+
+            let deleted = 0;
+            for (const cache of caches) {
+              const lastAccessed = new Date(cache.last_accessed_at).getTime();
+              const deleteClosedPrCache = prRef && cache.ref === prRef;
+              const deleteStaleMainCache = !prRef && cache.ref === "refs/heads/main" && (now - lastAccessed) > maxAgeMs;
+
+              if (deleteClosedPrCache || deleteStaleMainCache) {
+                await github.rest.actions.deleteActionsCacheById({
+                  owner,
+                  repo,
+                  cache_id: cache.id,
+                });
+                deleted += 1;
+                core.info(`Deleted cache ${cache.id}: ${cache.key}`);
+              }
+            }
+
+            core.info(`Scanned ${caches.length} caches; deleted ${deleted}.`);
